@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="dv" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ތެމިފޯވެފައި، ނަމަވެސް ހިނިތުންވަމުން</title>
+<meta name="description" content="ދިވެހި ކުރު ވާހަކައެއް">
+<meta property="og:title" content="ތެމިފޯވެފައި، ނަމަވެސް ހިނިތުންވަމުން">
+<meta property="og:image" content="images/rainy-steps.jpg">
+<meta name="theme-color" content="#1a0f0a">
+<link rel="preload" href="images/rainy-steps.jpg" as="image">
+<!-- Fallback Thaana font if Faruma is not available -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thaana:wght@400;700&display=swap">
+<style>
+  /* Faruma: uses the reader's installed copy first, then fonts/faruma.ttf from this repo */
+  @font-face {
+    font-family: "Faruma";
+    src: local("Faruma"), local("MV Faruma"),
+         url("fonts/faruma.woff2") format("woff2"),
+         url("fonts/faruma.ttf") format("truetype");
+    font-display: swap;
+  }
+
+  :root {
+    --ink: #1d1712;
+    --ink-soft: #5b4d42;
+    --amber: #f2a64a;
+    --ember: #e0703a;
+    --card: rgba(255, 250, 244, 0.94);
+    --glass: rgba(20, 12, 8, 0.45);
+    --font: "Faruma", "MV Faruma", "Noto Sans Thaana", sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #120a06;
+    color: var(--ink);
+    font-family: var(--font);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    display: grid;
+    place-items: center;
+  }
+
+  /* blurred backdrop for wide screens */
+  .backdrop {
+    position: fixed; inset: -40px;
+    background: url("images/rainy-steps.jpg") center/cover;
+    filter: blur(40px) brightness(.45) saturate(1.2);
+    z-index: 0;
+  }
+
+  .story {
+    position: relative;
+    z-index: 1;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: #000;
+    user-select: none;
+  }
+  @media (min-width: 560px) {
+    .story {
+      width: min(440px, 92vw);
+      height: min(880px, 94dvh);
+      border-radius: 28px;
+      box-shadow: 0 40px 100px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+    }
+  }
+
+  /* background photo with gentle per-page pan */
+  .photo {
+    position: absolute; inset: 0;
+    background: url("images/rainy-steps.jpg") center/cover no-repeat;
+    transform-origin: var(--ox, 50%) var(--oy, 50%);
+    transform: scale(var(--s, 1.08));
+    transition: transform 1.6s cubic-bezier(.2,.7,.2,1), transform-origin 1.6s cubic-bezier(.2,.7,.2,1), filter 1.2s;
+    filter: brightness(var(--b, 1));
+  }
+  .shade {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(0,0,0,.45) 0%, transparent 18%),
+      linear-gradient(to top, rgba(10,5,2,.75) 0%, transparent 55%);
+    pointer-events: none;
+  }
+  canvas.rain { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .55; }
+
+  /* top bar */
+  .top {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: max(14px, env(safe-area-inset-top)) 16px 0;
+    z-index: 5;
+  }
+  .progress { display: flex; gap: 5px; direction: rtl; }
+  .progress span {
+    flex: 1; height: 3px; border-radius: 3px;
+    background: rgba(255,255,255,.3);
+    overflow: hidden; position: relative;
+  }
+  .progress span i {
+    position: absolute; inset: 0;
+    background: #fff;
+    transform-origin: right;
+    transform: scaleX(0);
+    transition: transform .5s ease;
+  }
+  .progress span.done i, .progress span.on i { transform: scaleX(1); }
+
+  .meta {
+    margin-top: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: #fff;
+  }
+  .title-mini {
+    font-size: 15px;
+    text-shadow: 0 1px 6px rgba(0,0,0,.6);
+    opacity: .95;
+  }
+  .counter {
+    font-family: system-ui, sans-serif;
+    font-size: 13px; font-weight: 600;
+    background: var(--glass);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    padding: 6px 12px; border-radius: 999px;
+    direction: ltr;
+    letter-spacing: .5px;
+  }
+
+  /* nav buttons */
+  .nav {
+    position: absolute; top: 42%; z-index: 6;
+    width: 48px; height: 48px; border-radius: 50%;
+    border: none; cursor: pointer;
+    background: var(--glass);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    color: #fff;
+    display: grid; place-items: center;
+    transition: opacity .3s, transform .2s, background .2s;
+  }
+  .nav:hover { background: rgba(20,12,8,.65); }
+  .nav:active { transform: scale(.92); }
+  .nav[disabled] { opacity: 0; pointer-events: none; }
+  .nav svg { width: 22px; height: 22px; }
+  .nav.prev { right: 14px; }  /* RTL: previous is on the right */
+  .nav.next { left: 14px; }
+
+  /* tap zones */
+  .zone { position: absolute; top: 15%; bottom: 0; width: 30%; z-index: 4; }
+  .zone.z-prev { right: 0; }
+  .zone.z-next { left: 0; }
+
+  /* text card */
+  .card {
+    position: absolute; z-index: 7;
+    left: 14px; right: 14px;
+    bottom: max(30px, calc(env(safe-area-inset-bottom) + 18px));
+    background: var(--card);
+    border-radius: 22px;
+    padding: 20px 22px 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    max-height: 56%;
+    display: flex; flex-direction: column;
+    transition: opacity .45s ease, transform .45s ease;
+  }
+  .card.leaving { opacity: 0; transform: translateY(14px); }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-bottom: 8px;
+  }
+  .eyebrow {
+    font-size: 13px;
+    color: var(--ember);
+    letter-spacing: 0;
+  }
+  .icon {
+    flex: none;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #f3e7da;
+    display: grid; place-items: center;
+    color: var(--ink);
+  }
+  .icon svg { width: 20px; height: 20px; }
+  .card h1 {
+    font-size: 26px; line-height: 1.6;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .body {
+    overflow-y: auto;
+    padding-left: 4px;
+    scrollbar-width: thin;
+    user-select: text;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to bottom, #000 88%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 88%, transparent);
+    padding-bottom: 14px;
+  }
+  .body p {
+    font-size: 17px;
+    line-height: 2.05;
+    color: var(--ink-soft);
+    text-align: justify;
+  }
+  .body p + p { margin-top: 10px; }
+
+  /* the phone message lines */
+  .msg {
+    display: block;
+    margin: 12px 0 4px;
+    padding: 10px 16px;
+    border-radius: 18px 18px 4px 18px;
+    background: linear-gradient(135deg, #2b211b, #3d2d22);
+    color: #fff;
+    font-weight: 700;
+    line-height: 1.9;
+    width: fit-content;
+    max-width: 100%;
+  }
+  .msg.erased { opacity: .65; text-decoration: line-through; text-decoration-color: rgba(255,255,255,.5); }
+  .msg.sent::after {
+    content: "✓✓";
+    font-family: system-ui, sans-serif;
+    font-size: 11px; font-weight: 400;
+    color: var(--amber);
+    margin-right: 10px;
+  }
+
+  .notify {
+    display: flex; align-items: center; gap: 10px;
+    margin: 6px 0 4px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid #efe2d4;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(120,70,30,.12);
+    color: var(--ink);
+    animation: pop .7s .4s both cubic-bezier(.2,1.4,.4,1);
+  }
+  .notify .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 0 4px rgba(224,112,58,.2); flex: none; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-10px) scale(.95); } to { opacity: 1; transform: none; } }
+
+  .end {
+    margin-top: 14px;
+    display: flex; justify-content: center;
+  }
+  .restart {
+    font-family: var(--font);
+    font-size: 15px;
+    border: none; cursor: pointer;
+    background: var(--ink); color: #fff;
+    padding: 9px 22px; border-radius: 999px;
+  }
+
+  .handle {
+    position: absolute; bottom: 12px; left: 50%;
+    width: 110px; height: 4px; border-radius: 4px;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,.75);
+    z-index: 7;
+  }
+  @media (max-width: 559px) { .handle { display: none; } .card { bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px)); } }
+
+  .hint {
+    position: absolute; top: 34%; left: 50%; transform: translateX(-50%);
+    z-index: 6;
+    color: #fff; font-size: 14px;
+    background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding: 8px 16px; border-radius: 999px;
+    white-space: nowrap;
+    animation: fadeHint 4s 1.2s both;
+    pointer-events: none;
+  }
+  @keyframes fadeHint { 0%{opacity:0} 15%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+
+  @media (prefers-reduced-motion: reduce) {
+    .photo, .card, .progress span i { transition: none; }
+    canvas.rain { display: none; }
+    .notify, .hint { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<main class="story" id="story" aria-roledescription="carousel">
+  <div class="photo" id="photo" role="img" aria-label="ވާރޭގައި ސިޑީގައި އިށީނދެގެން ފޯނަށް ބަލަން އިން ފިރިހެނެއް"></div>
+  <canvas class="rain" id="rain" aria-hidden="true"></canvas>
+  <div class="shade"></div>
+
+  <div class="top">
+    <div class="progress" id="progress"></div>
+    <div class="meta">
+      <div class="title-mini">ތެމިފޯވެފައި، ނަމަވެސް ހިނިތުންވަމުން</div>
+      <div class="counter" id="counter">1 / 8</div>
+    </div>
+  </div>
+
+  <div class="zone z-prev" id="zPrev"></div>
+  <div class="zone z-next" id="zNext"></div>
+
+  <button class="nav prev" id="prev" aria-label="ކުރީގެ ޞަފްޙާ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <button class="nav next" id="next" aria-label="ދެން އޮތް ޞަފްޙާ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
+
+  <div class="hint" id="hint">ކައިރިއަށް ފިއްތާ ނުވަތަ ސްވައިޕް ކުރޭ</div>
+
+  <article class="card" id="card" aria-live="polite">
+    <div class="card-head">
+      <div>
+        <div class="eyebrow" id="eyebrow"></div>
+        <h1 id="heading"></h1>
+      </div>
+      <div class="icon" id="icon" aria-hidden="true"></div>
+    </div>
+    <div class="body" id="body"></div>
+  </article>
+
+  <div class="handle" aria-hidden="true"></div>
+</main>
+
+<script>
+const ICONS = {
+  rain:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 15a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 7.5a3.75 3.75 0 0 1 .5 7.47"/><path d="M8 18l-1 2M12 17l-1 3M16 18l-1 2"/></svg>',
+  umbrella: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 1-4 0"/></svg>',
+  ring:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14.5" r="6"/><path d="M9.5 3h5l1.5 3-4 3-4-3z"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
+  sun:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 17a5 5 0 0 0-10 0"/><path d="M12 6v3M4.9 9.9l2.1 2.1M19.1 9.9L17 12M2 17h2M20 17h2M2 21h20"/></svg>',
+  send:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/></svg>',
+  bell:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+  steps: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h5v-4h4v-4h4V8h5"/></svg>'
+};
+
+/* Each page: focal point of the photo (ox, oy), zoom (s), brightness (b) */
+const PAGES = [
+  {
+    eyebrow: "ފުރަތަމަ ބައި", title: "ވިއްސާރަ", icon: "rain",
+    ox: "50%", oy: "45%", s: 1.12, b: .95,
+    html: `<p>ވިއްސާރައިގެ ތެރެއަށް އިރުގެ ރަން ދޯދިތައް ފެތުރެމުން ދިޔައީ، އުފުގުގައި މާފުކުރުމުގެ ކުލަތަކެއް ފަވައިދެމުންނެވެ. ވާރޭ ވެހެމުން ދިޔައީ ރިހިކުލައިގެ ރޮދިތަކެއް ފަދައިން، އުސްމާނުގެ ގަމީސް ތެމިފޯކުރަމުންނެވެ. ނަމަވެސް އޭނާ ގުޑައިވެސް ނުލައެވެ. އޭނާގެ ބޮޑުވައިއިނގިލި ހުއްޓިފައިވަނީ ފޯނުގެ ސްކްރީން މަތީގައެވެ. އޭނާ ސަތޭކަ ފަހަރު ލިޔެފައި ފޮހެލި ލަފުޒުތައް އަލުން ކިޔައިލަކިޔައިލާ އިނެވެ:</p>
+           <span class="msg erased">އަހަރެން ރަނގަޅެއް ނޫނެވެ.</span>`
+  },
+  {
+    eyebrow: "ދެވަނަ ބައި", title: "ކަޅު ކުޑަތައް", icon: "umbrella",
+    ox: "12%", oy: "40%", s: 1.35, b: .9,
+    html: `<p>އޭނާގެ ވަށައިގެން، ސިޓީގެ މީހުން އަވަސްއަވަހަށް ގެއަށް ދިޔުމަށް ހިނގަމުން ދިޔައެވެ. ކަޅު ކުލައިގެ ކުޑަތައް، އޮމާން ބޫޓުތަކާއި ބްރީފްކޭސްތަކުގެ އޮއިވަރުގެ ތެރޭގައި އެލެމުންދިޔަ ކަޅު ދޯނިތަކެއް ފަދައިން ހަރަކާތްތެރިވަމުން ދިޔައެވެ. އެކަކުވެސް ތިރިއެއް ނުބަލައެވެ. އެންމެންގެ ކުރިމަތީގައި، އެކަނިވެރިކަމުގެ ތެރެއަށް ޣަރަޤުވަމުންދިޔަ އިންސާނާ ނުވަތަ އޭނާގެ ފައިބުޑަށް ވެއްޓިފައިވާ، އެއްލައިލެވިފައިވާ އައްޑަނައެއް ފަދަ ކަޅު ކުޑައެއް އެކަކަށްވެސް ނުފެނެއެވެ.</p>`
+  },
+  {
+    eyebrow: "ތިން މަސް ކުރިން", title: "އަނގޮޓި", icon: "ring",
+    ox: "28%", oy: "18%", s: 1.3, b: 1.05,
+    html: `<p>މީގެ ތިން މަސް ކުރިން، އޭނާ އެކަނބުލޭގެއާއެކު ކޮޅަށް ހުރީ މި ހިނގާ މަގުގައެވެ. އިރުއޮއްސޭ މަންޒަރު އޭނާއަށް ހިތްވަރު ދިނުމާ ހަމައަށް، އޭނާގެ ޖީބުގައިވާ އަނގޮޓި އޮތީ އޭނާގެ ހިތް އަންދަމުންނެވެ. އޭނާ އެއްކަކޫ މައްޗަށް ތިރިވުމުން އެކަނބުލޭގެ ހީނގަތެވެ. އެއީ އޭނާއަށް މަލާމާތްކުރުމުގެ ގޮތުންނެއް ނޫނެވެ. ނަމަވެސް އޭނާގެ ދެލޮލުން ފެންނަންހުރި ބިރުވެރި، އަދި އެހާމެ ތެދުވެރި ލޯބީގެ ބޮޑުކަމުންނެވެ. އެރޭވެސް ވާރޭ އޮއްސާލިއެވެ. ނަމަވެސް އުއްމީދުގެ އުފަލުން ހިތް ތެމިފައިވާ ހާލު، އެ ދެމީހުން ވާރޭގެ ތެރޭގައި ނެށިއެވެ.</p>`
+  },
+  {
+    eyebrow: "މިއަދު", title: "ހިމޭންކަން", icon: "phone",
+    ox: "42%", oy: "44%", s: 1.45, b: .85,
+    html: `<p>ނަމަވެސް މިއަދު، އެ އިރުއޮއްސޭ މަންޒަރު ބަލަން އޮތީ ތިން މަސްދުވަހުގެ ހިމޭންކަމާއި، ބޮޑާކަމާއި، އަދި ދޫކޮށްލުމަކީ އުއްމީދު ކަނޑައިލުން ކަމަށް އަމިއްލަ ނަފުސަށް ވިސްނައިދިނުމުގައި ހޭދަކުރި ރޭތަކުގެ އިހުސާސްތައް އެކުލެވޭ މެސެޖެއް ލިޔެވޭތޯ އޭނާ ކުރާ މަސައްކަތެވެ.</p>
+           <p>އޭނާގެ ފޯނު ތުރުތުރުއަޅައިގަތެވެ.</p>
+           <p>ޚަބަރުގެ އެލާޓެކެވެ. ޙިއްޞާގެ ބާޒާރެވެ. މޫސުމެވެ. ދުނިޔެ، އެއްވެސް ފަރުވާލެއް ނެތި، އޭގެ ދައުރުވުން ކުރިއަށްގެންދަނީއެވެ.</p>`
+  },
+  {
+    eyebrow: "ފަސްވަނަ ބައި", title: "މައްޗަށް ބަލައިލުން", icon: "sun",
+    ox: "30%", oy: "22%", s: 1.15, b: 1.08,
+    html: `<p>އުސްމާނު ފޯނު ތިރިކޮށްލިއެވެ. އެ ރޭ ފުރަތަމަ ފަހަރަށް، އޭނާ މައްޗަށް ބަލައިލިއެވެ.</p>
+           <p>ވާރޭގެ ތިކިތަކުގައިވަނީ ހޫނުކަމެކެވެ. ކަނޑު އޮތީ ދިޔާ ރަންވަންލޯ ކުލައަކަށް ބަދަލުވެފައެވެ. އަދި ފުސްވެފައިވާ ދުރުމަތިން، ކުރިން އެމީހުން އެކުގައި އުޅުނު ގޭގެ ކުޑަދޮރާ ވައްތަރު ކުޑަދޮރަކުން އަލިކަމެއް ދިއްލިލިއެވެ. އަމިއްލަ ހިތް ހުއްޓިފައިވީ ނަމަވެސް ހުއްޓުމެއްނެތި ކުރިއަށްދާ މި ދިރިއުޅުމުގެ ރީތިކަމާއި، ބިރުވެރިކަމާއި، އަދި އޯގާތެރިކަން އޭނާއަށް އިހުސާސްކުރެވުނެވެ.</p>`
+  },
+  {
+    eyebrow: "ހަވަނަ ބައި", title: "ސެންޑް", icon: "send",
+    ox: "80%", oy: "72%", s: 1.35, b: .95,
+    html: `<p>އޭނާ އެއްލައިލެވިފައިވާ ކުޑަ ނެގިއެވެ. ދެން، މޫނުމަތީގައި ވާރޭގެ ތިކިތަކާއެކު އޮއްސެމުންދިޔަ ކަރުނަތަކާއެކު، އޭނާގެ ތުރުތުރުއެޅުން ހުއްޓިފައިވާ ބޮޑުވައިއިނގިލިން އެންމެ ފަހު ފަހަރަށް އެ ލަފުޒުތައް ލިޔެލިއެވެ:</p>
+           <span class="msg sent">އަހަރެން ތިޔަ ހަނދާންވެއެވެ. މާފުކުރާށެވެ. އަލުން ފަށަން ފުރުޞަތެއް ލިބިދާނެ ހެއްޔެވެ؟</span>
+           <p>އޭނާ ސެންޑް ފިއްތައިލިއެވެ.</p>`
+  },
+  {
+    eyebrow: "ހަތްވަނަ ބައި", title: "އައު މެސެޖެއް", icon: "bell",
+    ox: "40%", oy: "30%", s: 1.2, b: .8,
+    html: `<p>އިރު ދުނިޔޭގެ އުފުގުން އޮއްސިގެން ދިޔައެވެ. އުސްމާނު ކޮޅަށް ތެދުވެ، ކުޑަ ކޮނޑުގައި އަޅުވައިލީ އައްޑަނައެއްގެ ގޮތުގައެއް ނޫނެވެ. ނަމަވެސް އެއަށްވުރެ ލުއި އެއްޗެއްގެ ގޮތުގައެވެ. އޭނާއަށް އެކަނބުލޭގެ ޖަވާބެއް ދޭނެކަމެއް ނޭނގެއެވެ. ނަމަވެސް ތިން މަސްދުވަހަށްފަހު ފުރަތަމަ ފަހަރަށް، އޭނާ އަނދިރީގެ ތެރޭގައި އިންތިޒާރުކުރާކަށް ނެތެވެ. އޭނާ ދިޔައީ އެ އަނދިރިކަން ގިރާކޮށް، ކުރިއަށް އޮތް ކޮންމެ ކަމަކާ ކުރިމަތިލުމަށް ހިނގަމުންނެވެ.</p>
+           <p>އޭނާގެ އަތުގައިވާ ފޯނުގެ ސްކްރީން ދިއްލިގެން ދިޔައެވެ.</p>
+           <div class="notify"><span class="dot"></span><span>އައު މެސެޖެކެވެ.</span></div>`
+  },
+  {
+    eyebrow: "ނިމުން", title: "ހިނިތުންވުން", icon: "steps",
+    ox: "55%", oy: "78%", s: 1.25, b: .9,
+    html: `<p>އުސްމާނު ސިޑީގެ އެންމެ ތިރީގައި މަޑުކޮށްލިއެވެ. ފައިބުޑުގައިވާ ފެންގަނޑުތަކުން ރަން ބައްތިތަކުގެ އަލި އެޅި، ބަބުޅަމުން ދިޔައެވެ. އޭނާ އެ ލަފުޒުތައް އެއްފަހަރު، ދެފަހަރަށް ކިޔައިލިއެވެ. ދެން، މުޅި ހަށިގަނޑު ތެމިފޯވެފައިވީ ނަމަވެސް، ހިތަށް ވެރިވި އާދަޔާޚިލާފު ހޫނުކަމާއެކު، އޭނާ ހިނިތުންވެލިއެވެ.</p>
+           <p>ރޭގަނޑު އަނދިރިވަމުން ދިޔަވަރަކަށް، ސިޑީގެ ކައިރީގައިވާ އަލިތައް އިތުރަށް ދިއްލެމުން ދިޔައެވެ. އެއީ ކުރިއަށްދާން މަގުދައްކައިދޭ ކުދި ބައްތިތަކެއް ފަދައިންނެވެ. އަދި އޭނާ ގެއާ ދިމާއަށް ފުރަތަމަ ފިޔަވަޅު އަޅައިލިއެވެ.</p>
+           <div class="end"><button class="restart" onclick="go(0)">އަލުން ކިޔާލުމަށް</button></div>`
+  }
+];
+
+const $ = id => document.getElementById(id);
+const photo = $("photo"), card = $("card"), progress = $("progress");
+let index = 0, busy = false;
+
+progress.innerHTML = PAGES.map(() => "<span><i></i></span>").join("");
+const bars = [...progress.children];
+
+function render(i) {
+  const p = PAGES[i];
+  photo.style.setProperty("--ox", p.ox);
+  photo.style.setProperty("--oy", p.oy);
+  photo.style.setProperty("--s", p.s);
+  photo.style.setProperty("--b", p.b);
+  $("eyebrow").textContent = p.eyebrow;
+  $("heading").textContent = p.title;
+  $("icon").innerHTML = ICONS[p.icon];
+  $("body").innerHTML = p.html;
+  $("body").scrollTop = 0;
+  $("counter").textContent = (i + 1) + " / " + PAGES.length;
+  bars.forEach((b, k) => { b.className = k < i ? "done" : k === i ? "on" : ""; });
+  $("prev").disabled = i === 0;
+  $("next").disabled = i === PAGES.length - 1;
+  if (location.hash !== "#" + (i + 1)) history.replaceState(null, "", "#" + (i + 1));
+}
+
+function go(i) {
+  if (busy || i < 0 || i >= PAGES.length || i === index) return;
+  busy = true;
+  card.classList.add("leaving");
+  photo.style.setProperty("--ox", PAGES[i].ox);
+  photo.style.setProperty("--oy", PAGES[i].oy);
+  setTimeout(() => {
+    index = i;
+    render(i);
+    card.classList.remove("leaving");
+    busy = false;
+  }, 380);
+}
+window.go = go;
+const next = () => go(index + 1), prev = () => go(index - 1);
+
+$("next").onclick = next; $("prev").onclick = prev;
+$("zNext").onclick = next; $("zPrev").onclick = prev;
+
+/* keyboard: RTL so left arrow = forward */
+addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft" || e.key === " ") { e.preventDefault(); next(); }
+  if (e.key === "ArrowRight") prev();
+});
+
+/* swipe */
+let sx = null, sy = null;
+const story = $("story");
+story.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+story.addEventListener("touchend", e => {
+  if (sx === null) return;
+  const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) dx > 0 ? next() : prev();
+  sx = null;
+}, { passive: true });
+
+/* start from #page in URL */
+const start = parseInt(location.hash.slice(1), 10);
+index = start >= 1 && start <= PAGES.length ? start - 1 : 0;
+render(index);
+
+/* light rain overlay */
+(function rain() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = $("rain"), ctx = c.getContext("2d");
+  let w, h, drops;
+  function size() {
+    const r = c.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2);
+    w = c.width = r.width * d; h = c.height = r.height * d;
+    drops = Array.from({ length: Math.round(r.width * r.height / 2600) }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      l: (8 + Math.random() * 16) * d, v: (9 + Math.random() * 9) * d, a: .15 + Math.random() * .35
+    }));
+  }
+  size(); addEventListener("resize", size);
+  (function frame() {
+    ctx.clearRect(0, 0, w, h);
+    ctx.lineWidth = 1;
+    for (const p of drops) {
+      ctx.strokeStyle = `rgba(255,225,190,${p.a})`;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.l * .12, p.y + p.l); ctx.stroke();
+      p.y += p.v; p.x -= p.v * .12;
+      if (p.y > h) { p.y = -p.l; p.x = Math.random() * w * 1.1; }
+    }
+    requestAnimationFrame(frame);
+  })();
+})();
+</script>
+</body>
+</html>
